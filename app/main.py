@@ -1,5 +1,6 @@
 import os
 import requests
+import re
 
 from fastapi import FastAPI
 from fastapi import UploadFile
@@ -8,10 +9,27 @@ from fastapi import File
 from app.rag import process_pdf
 from app.rag import retrieve
 
+from app.database import conn
+
 app = FastAPI(
     title="Enterprise RAG Assistant"
 )
 
+def redact_pii(text):
+
+    text = re.sub(
+        r'\S+@\S+',
+        '[EMAIL_REDACTED]',
+        text
+    )
+
+    text = re.sub(
+        r'\d{10}',
+        '[PHONE_REDACTED]',
+        text
+    )
+
+    return text
 
 @app.get("/")
 def root():
@@ -69,6 +87,7 @@ async def ask_question(
             for chunk in chunks
         )
 
+        context = redact_pii(context)
         prompt = f"""
 You are an enterprise AI assistant.
 
@@ -99,6 +118,19 @@ Question:
         answer = response.json()[
             "response"
         ]
+        conn.execute(
+            """
+            INSERT INTO audit_logs(question,
+                                   answer)
+            VALUES (?, ?)
+            """,
+            (
+                question,
+                answer
+            )
+        )
+
+        conn.commit()
 
         sources = []
 
