@@ -14,6 +14,7 @@ embedding_model = SentenceTransformer(
 )
 
 documents = []
+metadata_store = []
 index = None
 
 
@@ -57,6 +58,16 @@ def process_pdf(file_path: str):
 
     documents.extend(chunks)
 
+    for chunk in chunks:
+        metadata_store.append(
+            {
+                "document": file_path.split("/")[-1],
+                "page": chunk.metadata.get(
+                    "page"
+                )
+            }
+        )
+
     print(
         f"Indexed {len(chunks)} chunks"
     )
@@ -87,9 +98,12 @@ def retrieve(
     results = []
 
     for idx in indices[0]:
-
         results.append(
-            documents[idx]
+            {
+                "chunk": documents[idx],
+                "metadata":
+                    metadata_store[idx]
+            }
         )
 
     return results

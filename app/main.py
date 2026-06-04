@@ -83,8 +83,8 @@ async def ask_question(
         )
 
         context = "\n\n".join(
-            chunk.page_content
-            for chunk in chunks
+            item["chunk"].page_content
+            for item in chunks
         )
 
         context = redact_pii(context)
@@ -134,14 +134,14 @@ Question:
 
         sources = []
 
-        for chunk in chunks:
-
+        for item in chunks:
             sources.append(
                 {
+                    "document":
+                        item["metadata"]["document"],
+
                     "page":
-                    chunk.metadata.get(
-                        "page"
-                    )
+                        item["metadata"]["page"]
                 }
             )
 
